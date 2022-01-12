@@ -1,0 +1,10 @@
+Id: 1, Name: “Gil”, Age: 22, CountryID: “IL”
+Id: 2, Name: “Moshe”, Age: (Unknown), CountryID: (Unknown)
+Id: 3, Name: “Alessandro”, Age: 60, CountryID: (Unknown)
+Id: 4, Name: “Jerry”, Age:(Unknown), CountryID: “US”
+Id: 5, Name: “Liad”, Age: 23, CountryID: “IL”
+Id: 6, Name: “Govanni”, Age: 50, CountryID: “IT”
+Id: 7, Name: (Unknown), Age: 45, CountryID: “US”
+Id: 8, Name: (Unknown), Age: (Unknown), CountryID: “US”
+Id: 9, Name: “Korin”, age: (Unknown), CountryID: (Unknown)
+Id: 10, Name: “Doron”, age: 0, CountryID: “IL”

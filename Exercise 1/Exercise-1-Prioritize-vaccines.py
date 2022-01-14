@@ -20,9 +20,9 @@
 # DONE: write a function that fills all th empty ages by the api call
 # --------------------------------------------------------------
 
-# TODO: write a func which implement the vaccine sorting algorithm and return a prioritize list.
+# DONE: write a func which implement the vaccine sorting algorithm and return a prioritize list.
 
-# TODO:
+# TODO: at the feature handle the no data at the csv file
 
 
 # IMPORTS
@@ -155,14 +155,24 @@ def prioritize_vaccine(complete_lst_of_dcts):
 def already_vaccinated_filter_feature(all_persons_dicts_lst):
     with open(VACCINATED_IDS_FILE_PATH, 'r', encoding='utf-8') as ids_file:
         try:
-            persons_ids =[int(row[0]) for row in csv.reader(ids_file)]
-            if len(persons_ids) == 0:
+            if os.path.getsize(VACCINATED_IDS_FILE_PATH) == 2:
                 return all_persons_dicts_lst
             else:
+                persons_ids = [int(row[0]) for row in csv.reader(ids_file)]
                 return list(filter(lambda dct: (dct['Id'] not in persons_ids), all_persons_dicts_lst))
         except ValueError as e:
             print(f"Invalid value{e.args[0].split(':')[-1]} at the vaccinated_ids.csv file.")
             exit()
+
+
+def re_prioritize_by_country(sorted_lst, countries_lst):
+    elders_slice = sorted([dct for dct in sorted_lst if dct['Age'] != '(Unknown)' and dct['Age'] >= 50],
+                          key=lambda i: (i['Age'] if i['CountryID'] not in countries_lst else i['Age']), reverse=True)
+
+    others_slice = sorted([dct for dct in sorted_lst[::-1] if dct['Age'] != '(Unknown)' and dct['Age'] < 50],
+                          key=lambda i: i['Id'] if i['CountryID'] not in countries_lst else i['CountryID'])
+
+    return elders_slice + others_slice
 
 
 # read and format the data
@@ -184,4 +194,6 @@ complete_data = fill_the_unknown_ages(filtered_people_list, agify_age_lst)
 # sorting algorithm
 sorted_proirity_for_vaccine = prioritize_vaccine(complete_data)
 
-
+filter_by_countrues = re_prioritize_by_country(sorted_proirity_for_vaccine, ['IT'])
+for i in filter_by_countrues:
+    print(i)

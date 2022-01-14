@@ -29,11 +29,13 @@
 import requests
 import os
 import ast
+import csv
 from pprint import pprint
 
 # CONSTANT
 current_dir = os.path.dirname(__file__)
 DATA_FILE_PATH = rf"{current_dir}\Database\data.txt"
+VACCINATED_IDS_FILE_PATH = rf"{current_dir}\Database\vaccinated_ids.csv"
 NATIONALIZE_ENDPOINT = r"https://api.nationalize.io/"
 AGIFY_ENDPOINT = r"https://api.agify.io/"
 
@@ -150,20 +152,36 @@ def prioritize_vaccine(complete_lst_of_dcts):
     else -i['Id'], reverse=True)
 
 
+def already_vaccinated_filter_feature(all_persons_dicts_lst):
+    with open(VACCINATED_IDS_FILE_PATH, 'r', encoding='utf-8') as ids_file:
+        try:
+            persons_ids =[int(row[0]) for row in csv.reader(ids_file)]
+            if len(persons_ids) == 0:
+                return all_persons_dicts_lst
+            else:
+                return list(filter(lambda dct: (dct['Id'] not in persons_ids), all_persons_dicts_lst))
+        except ValueError as e:
+            print(f"Invalid value{e.args[0].split(':')[-1]} at the vaccinated_ids.csv file.")
+            exit()
+
+
+# read and format the data
 lines_lst = get_data_from_file()
 list_of_dicts = format_data_to_lst(lines_lst)
-dcts_of_names_without_country = create_dct_of_names_without_countries(list_of_dicts)
+
+# filter already vaccinated feature
+filtered_people_list = already_vaccinated_filter_feature(list_of_dicts)
+
+# optimizations of data for efficient api requests, than filling the missing data.
+dcts_of_names_without_country = create_dct_of_names_without_countries(filtered_people_list)
 countries_probability_json = request_for_countries(dcts_of_names_without_country)
 best_probability_of_countries = analysed_best_country_for_name(countries_probability_json)
-countries_filled_lst_of_dcts = fill_the_unknown_countries(list_of_dicts, best_probability_of_countries)
+countries_filled_lst_of_dcts = fill_the_unknown_countries(filtered_people_list, best_probability_of_countries)
 dct_of_names_by_country = create_dct_of_names_by_country(countries_filled_lst_of_dcts)
 agify_age_lst = request_for_ages(dct_of_names_by_country)
-complete_data = fill_the_unknown_ages(list_of_dicts, agify_age_lst)
+complete_data = fill_the_unknown_ages(filtered_people_list, agify_age_lst)
+
+# sorting algorithm
 sorted_proirity_for_vaccine = prioritize_vaccine(complete_data)
 
-
-
-
-# for i in complete_data:
-#     print(i)
 

@@ -1,52 +1,35 @@
-# ----------------------------------- DATABASE BUILD -------------------------------------
-# DONE: write a func that gets the data from the data.txt file and returns a list of lines.
-
-# DONE: write a func that gets list of lines from the last func and reformat it to list of dicts.
-
-# DONE: write a func that gets list of dicts and returns dict of {Id: name} if in the dict country = '(Unknown)'
-
-# DONE: write a func that gets an name and return the most likely countries from as json.
-
-# DONE: WRITE A FUNCTION WITH ANALYSED THE BEST COUNTRY FOR EACH NAME FROM THE JSON AND RETURN A DCT OF {NAME: COUNTRY}
-
-# DONE: write a func that fills the (Unknowns) parts of the original list of dicts with the countries.
-
-# DONE: write a func that runs over the list of dicts, the func creates a dict that the key is country
-#  and the value is list of tuples of (id, name).
-
-# DONE: write a func that gets dict of {country: [(id, name),(id, name)]} run over it and make a request to get
-#  their ages. then return it as list of json.
-
-# DONE: write a function that fills all th empty ages by the api call
-# --------------------------------------------------------------
-
-# DONE: write a func which implement the vaccine sorting algorithm and return a prioritize list.
-
-# TODO: at the feature handle the no data at the csv file
-
 
 # IMPORTS
 import requests
 import os
 import ast
 import csv
-from pprint import pprint
 
 # CONSTANT
 current_dir = os.path.dirname(__file__)
 DATA_FILE_PATH = rf"{current_dir}\Database\data.txt"
-VACCINATED_IDS_FILE_PATH = rf"{current_dir}\Database\vaccinated_ids.csv"
+VACCINATED_IDS_F = rf"{current_dir}\Database\vaccinated_ids.csv"
+LOW_PRIORITY_COUNTRIES_IDS_F = rf"{current_dir}\Database\low_priority_countries_ids.csv"
 NATIONALIZE_ENDPOINT = r"https://api.nationalize.io/"
 AGIFY_ENDPOINT = r"https://api.agify.io/"
 
 
 def get_data_from_file():
-    with open(DATA_FILE_PATH, 'r', encoding='UTF-8') as data_f:
-        lines_lst = data_f.readlines()
-        return lines_lst
+    """Reads the data.txt file's lines. Return list of lines"""
+
+    try:
+        with open(DATA_FILE_PATH, 'r', encoding='UTF-8') as data_f:
+            lines_lst = data_f.readlines()
+            return lines_lst
+
+    except FileNotFoundError:
+        print(r"The data file '\Database\data.txt' is missing or moved")
+        exit()
 
 
 def format_data_to_lst(lines_lst):
+    """Reformat the lines without invalid signs, convert each line to dictionary, Return list of dictionaries"""
+
     by_lines_without_invalid_chars = [
         "{" + line.split('\n')[:-1][0].replace("“", "'")  # reorganize to str like dicts for ast.literal_eval
             .replace("”", "'")
@@ -63,6 +46,7 @@ def format_data_to_lst(lines_lst):
 
 
 def create_dct_of_names_without_countries(lst_of_dicts):
+    """"""
     unknown_country_names = {}
     dcts_gen = (dct for dct in lst_of_dicts)
     for dct_i in dcts_gen:
@@ -152,48 +136,117 @@ def prioritize_vaccine(complete_lst_of_dcts):
     else -i['Id'], reverse=True)
 
 
-def already_vaccinated_filter_feature(all_persons_dicts_lst):
-    with open(VACCINATED_IDS_FILE_PATH, 'r', encoding='utf-8') as ids_file:
+def already_vaccinated_filter(all_persons_dicts_lst):
+    with open(VACCINATED_IDS_F, 'r', encoding='utf-8') as ids_file:
         try:
-            if os.path.getsize(VACCINATED_IDS_FILE_PATH) == 2:
+            if os.path.getsize(VACCINATED_IDS_F) == 2:
                 return all_persons_dicts_lst
             else:
                 persons_ids = [int(row[0]) for row in csv.reader(ids_file)]
                 return list(filter(lambda dct: (dct['Id'] not in persons_ids), all_persons_dicts_lst))
+
         except ValueError as e:
             print(f"Invalid value{e.args[0].split(':')[-1]} at the vaccinated_ids.csv file.")
             exit()
 
+        except FileNotFoundError:
+            print(f"The file {VACCINATED_IDS_F} is missing or moved")
+            exit()
 
-def re_prioritize_by_country(sorted_lst, countries_lst):
+
+def read_countries_file():
+    try:
+        with open(LOW_PRIORITY_COUNTRIES_IDS_F, 'r', encoding='utf-8') as LPCI_FILE:
+
+            data = csv.reader(LPCI_FILE)
+            countries_lst = [row[0] for row in data]
+
+            for c in countries_lst:
+                value_check = c.isdigit()
+                if value_check:
+                    raise ValueError(c)
+            return countries_lst
+
+    except FileNotFoundError:
+        print(f"The file {LOW_PRIORITY_COUNTRIES_IDS_F} is missing or moved")
+        exit()
+
+    except IndexError:
+        return []
+
+    except ValueError as e:
+        print(f"Invalid value: '{e.args[0].split(':')[-1]}' in the low_priority_countries_id")
+        exit()
+
+
+def reprioritize_by_country(sorted_lst, countries_lst):
+
     elders_slice = sorted([dct for dct in sorted_lst if dct['Age'] != '(Unknown)' and dct['Age'] >= 50],
-                          key=lambda i: (i['Age'] if i['CountryID'] not in countries_lst else i['Age']), reverse=True)
+                          key=lambda i: (i['Age'] if i['CountryID'] not in countries_lst else 0), reverse=True)
 
-    others_slice = sorted([dct for dct in sorted_lst[::-1] if dct['Age'] != '(Unknown)' and dct['Age'] < 50],
-                          key=lambda i: i['Id'] if i['CountryID'] not in countries_lst else i['CountryID'])
-
+    others_slice = sorted([dct for dct in sorted_lst[::-1] if dct['Age'] == '(Unknown)' or dct['Age'] < 50],
+                          key=lambda i: (i['Id'] if i['CountryID'] in countries_lst else 0), reverse=True)[::-1]
     return elders_slice + others_slice
 
 
-# read and format the data
-lines_lst = get_data_from_file()
-list_of_dicts = format_data_to_lst(lines_lst)
+def write_results(final_priority_lst, session_f):
+    keys = final_priority_lst[0].keys()
+    with open(session_f, 'w') as r_f:
+        dict_writer = csv.DictWriter(r_f, keys)
+        dict_writer.writeheader()
+        dict_writer.writerows(final_priority_lst)
 
-# filter already vaccinated feature
-filtered_people_list = already_vaccinated_filter_feature(list_of_dicts)
 
-# optimizations of data for efficient api requests, than filling the missing data.
-dcts_of_names_without_country = create_dct_of_names_without_countries(filtered_people_list)
-countries_probability_json = request_for_countries(dcts_of_names_without_country)
-best_probability_of_countries = analysed_best_country_for_name(countries_probability_json)
-countries_filled_lst_of_dcts = fill_the_unknown_countries(filtered_people_list, best_probability_of_countries)
-dct_of_names_by_country = create_dct_of_names_by_country(countries_filled_lst_of_dcts)
-agify_age_lst = request_for_ages(dct_of_names_by_country)
-complete_data = fill_the_unknown_ages(filtered_people_list, agify_age_lst)
+def is_session_n_exist():
+    session_n = input("Enter a running session name: ")
+    session_f = rf"{current_dir}\Results\{session_n}.csv"
 
-# sorting algorithm
-sorted_proirity_for_vaccine = prioritize_vaccine(complete_data)
+    if os.path.exists(session_f):
+        choice = input(f"The session name '{session_n}' is already exist.\n"
+                       f"press '1' for change it. otherwise, press any key to overwrite it."
+                       f"\n>> ")
+        if choice == '1':
+            session_n = input("New session name: ")
+            return rf"{current_dir}\Results\{session_n}.csv"
 
-filter_by_countrues = re_prioritize_by_country(sorted_proirity_for_vaccine, ['IT'])
-for i in filter_by_countrues:
-    print(i)
+        else:
+            return session_f
+    else:
+        return session_f
+
+
+def main():
+    print("""Welcome to the Vaccine Priority Program                           
+                     .--.          
+            ,-.------+-.|  ,-.     
+   0--=======* )"("")===)===* )    
+   o        `-"---==-+-"|  `-"     
+   0                 '--'   ~JW~  \n""")
+
+    session_result_f = is_session_n_exist()
+
+    # read and format the data
+    lines_lst = get_data_from_file()
+    list_of_dicts = format_data_to_lst(lines_lst)
+
+    # filter already vaccinated feature
+    filtered_people_list = already_vaccinated_filter(list_of_dicts)
+
+    # optimizations of data for efficient api requests, than filling the missing data.
+    dcts_of_names_without_country = create_dct_of_names_without_countries(filtered_people_list)
+    countries_probability_json = request_for_countries(dcts_of_names_without_country)
+    best_probability_of_countries = analysed_best_country_for_name(countries_probability_json)
+    countries_filled_lst_of_dcts = fill_the_unknown_countries(filtered_people_list, best_probability_of_countries)
+    dct_of_names_by_country = create_dct_of_names_by_country(countries_filled_lst_of_dcts)
+    agify_age_lst = request_for_ages(dct_of_names_by_country)
+    complete_data = fill_the_unknown_ages(filtered_people_list, agify_age_lst)
+
+    # sorting algorithm
+    sorted_proirity_for_vaccine = prioritize_vaccine(complete_data)
+    filter_by_countrues = reprioritize_by_country(sorted_proirity_for_vaccine, read_countries_file())
+    write_results(filter_by_countrues, session_result_f)
+    print("Complete")
+
+
+if __name__ == '__main__':
+    main()

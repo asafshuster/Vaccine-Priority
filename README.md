@@ -5,12 +5,12 @@ Python version: 3.8
 Dependencies: none any installation required.
 
 ## Structure
-- ** Prioritize-vaccines.py **: The main file to execute for starting the program.
-- ** Database **: A folder that contains 3 files-
+- **Prioritize-vaccines.py**: The main file to execute for starting the program.
+- **Database**: A folder that contains 3 files-
 	- data.txt: contains all the lines of people that the program work with.
 	- low_priority_countries_ids.csv: contains countire id of countries which get low priority at the sorting algorithm.
 	- vaccinated_ids.csv: contains ids of people which already vaccine and will filter out from the sorting algorithm.
-- ** Results **: A folder that contains the csv files of the results.
+- **Results**: A folder that contains the csv files of the results.
 
 ## Usage
 - Fill up data.txt in the format bellow:  

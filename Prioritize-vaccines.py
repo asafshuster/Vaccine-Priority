@@ -78,7 +78,7 @@ def request_for_countries(names_lst):
         params = {'name': names_lst}
         res = requests.get(NATIONALIZE_ENDPOINT, params=params)
         if res.status_code != 200:
-            print(f"Error in api call to nationalize.io ({res.status_code})")
+            print(res.json())
             exit()
         return res.json()
     else:
@@ -156,12 +156,12 @@ def request_for_ages(names_by_country_dct):
             if country != '(Unknown)':
                 res = requests.get(AGIFY_ENDPOINT, params={'country_id': country, 'name': params[country]})
                 if res.status_code != 200:
-                    print(f"Error in api call to Agify.io ({res.status_code})")
+                    print(res.json())
                     exit()
             else:
                 res = requests.get(AGIFY_ENDPOINT, params={'name': params[country]})
                 if res.status_code != 200:    
-                    print(f"Error in api call to Agify.io ({res.status_code})")
+                    print(res.json())
                     exit()
             res_result_lst.append(res.json())
         return res_result_lst

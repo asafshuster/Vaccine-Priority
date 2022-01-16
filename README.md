@@ -3,7 +3,7 @@ A short project about the priority of getting a vaccine. The algorithm will prio
 
 ## Dependences
 - **Python version**: 3.8
-- **installation**: 
+- **pacage installations**: 
 	- ast
 	- requests
 - **Api Reference**:

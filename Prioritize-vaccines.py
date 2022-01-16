@@ -155,12 +155,14 @@ def request_for_ages(names_by_country_dct):
         for country in params:
             if country != '(Unknown)':
                 res = requests.get(AGIFY_ENDPOINT, params={'country_id': country, 'name': params[country]})
-                print(f"Error in api call to Agify.io ({res.status_code})")
-                exit()
+                if res.status_code != 200:
+                    print(f"Error in api call to Agify.io ({res.status_code})")
+                    exit()
             else:
                 res = requests.get(AGIFY_ENDPOINT, params={'name': params[country]})
-                print(f"Error in api call to Agify.io ({res.status_code})")
-                exit()
+                if res.status_code != 200:    
+                    print(f"Error in api call to Agify.io ({res.status_code})")
+                    exit()
             res_result_lst.append(res.json())
         return res_result_lst
     else:
@@ -177,19 +179,12 @@ def fill_unknown_ages(lst_of_dcts, agify_res_lst):
     agify_res_gen = (dct for dct in agify_res_lst)
     for d in agify_res_gen:
         for dct in lst_of_dcts:
-            try:
-                if dct['Age'] == '(Unknown)' and dct['Name'] == d['name'] and dct['CountryID'] == d['country_id']:
-                    if d['age'] is not None:
-                        dct['Age'] = d['age']
-                    else:
-                        dct['Age'] = '(Unknown)'
+            if dct['Age'] == '(Unknown)' and dct['Name'] == d['name']:
+                if d['age'] is not None:
+                    dct['Age'] = d['age']
+                else:
+                    dct['Age'] = '(Unknown)'
 
-            except KeyError:
-                if dct['Age'] == '(Unknown)' and dct['Name'] == d['name']:
-                    if d['age'] is not None:
-                        dct['Age'] = d['age']
-                    else:
-                        dct['Age'] = '(Unknown)'
     return lst_of_dcts
 
 

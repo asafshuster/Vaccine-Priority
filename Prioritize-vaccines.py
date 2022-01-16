@@ -81,8 +81,6 @@ def request_for_countries(names_lst):
             print(res.json())
             exit()
         return res.json()
-    else:
-        return None
 
 
 def analysed_best_country_for_name(name_country_json):

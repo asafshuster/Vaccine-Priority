@@ -303,19 +303,35 @@ def is_session_n_exist():
         return session_f
 
 
-def sorting_algo(complete_data, session_result_f):
+def sorting_algo(complete_data):
     """
-    Run prioritize_vaccine() and then reprioritize_by_country(), than run write_results().
+    Run prioritize_vaccine() and then reprioritize_by_country().
     :param complete_data: list of dicts contains all the people from data.txt after
     filling most of the '(Unknown)' values.
     :param session_result_f: result file path.
-    :return: None
+    :return: The data sorting by the two algorithms
+
     """
     age_id_prio_sort = prioritize_vaccine(complete_data)
     low_prio_countries_filter = reprioritize_by_country(age_id_prio_sort, read_countries_file())
-    write_results(low_prio_countries_filter, session_result_f)
-    print("Complete")
+    return low_prio_countries_filter
 
+
+def run_agify_or_not(agify_age_lst, filtered_people_list):
+    """
+    Fill the ages of the names with unknown ages if their name in agify_age_lst.
+    :param agify_age_lst: A list of dicts contains the matching of the names to the ages.
+    :param filtered_people_list: A list of dicts contains the original data without the vaccinated people.
+    :return: A list of dicts filled with the ages that was unknown by the agify_age_lst.
+
+    """
+    if agify_age_lst is not None:
+        complete_data = fill_unknown_ages(filtered_people_list, agify_age_lst)
+        data_after_algo = sorting_algo(complete_data)
+        return data_after_algo
+    else:
+        data_after_algo = sorting_algo(filtered_people_list)
+        return data_after_algo
 
 def main():
     print("""Welcome to the Vaccine Priority Program                           
@@ -342,20 +358,16 @@ def main():
         countries_filled_lst_of_dcts = fill_unknown_countries(filtered_people_list, best_prob_countries)
         names_by_country_dct = create_names_by_country_dct(countries_filled_lst_of_dcts)
         agify_age_lst = request_for_ages(names_by_country_dct)
-        if agify_age_lst is not None:
-            complete_data = fill_unknown_ages(filtered_people_list, agify_age_lst)
-            sorting_algo(complete_data, session_result_f)
-        else:  # in case all the people have age value.
-            sorting_algo(filtered_people_list, session_result_f)
+        data_after_algo = run_agify_or_not(agify_age_lst, filtered_people_list)
+        write_results(data_after_algo, session_result_f)
 
     else:  # in case all the people have country value
         names_by_country_dct = create_names_by_country_dct(filtered_people_list)
         agify_age_lst = request_for_ages(names_by_country_dct)
-        if agify_age_lst is not None:
-            complete_data = fill_unknown_ages(filtered_people_list, agify_age_lst)
-            sorting_algo(complete_data, session_result_f)
-        else:
-            sorting_algo(filtered_people_list, session_result_f)
+        data_after_algo = run_agify_or_not(agify_age_lst, filtered_people_list)
+        write_results(data_after_algo, session_result_f)
+
+    print("Complete")
             
 
 if __name__ == '__main__':
